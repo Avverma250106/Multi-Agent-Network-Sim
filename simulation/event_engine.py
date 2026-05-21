@@ -1,5 +1,6 @@
 import time
 
+from core import link
 from telemetry.logger import Logger
 
 
@@ -19,6 +20,17 @@ class EventEngine:
 
             node = self.network.nodes[current_node]
             link = node.neighbours[next_node]
+
+            if link.is_congested():
+                link.drop_packet()
+                self.metrics.packet_dropped()
+
+                Logger.log(
+                    f"Packet {packet.id} DROPPED due to congestion "
+                    f"on {current_node} -> {next_node}"
+                )
+
+                return
 
             link.add_traffic(packet.size)
 

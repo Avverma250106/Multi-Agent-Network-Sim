@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     print("\n=== Starting Simulation ===\n")
 
-    for _ in range(5):
+    for _ in range(50):
         packet = traffic_generator.generate_packet()
 
         metrics.packet_generated()
