@@ -8,70 +8,85 @@ class EventEngine:
     def __init__(self, network, metrics):
         self.network = network
         self.metrics = metrics
+        self.active_packets = []
 
     def transmit_packet(self, packet):
         path = self.network.route_packet(packet)
+        self.active_packets.append(
+            {
+                "packet": packet,
+                "path": path,
+                "current_hop": 0
+            }
+        )
 
-        Logger.log(f"Routing {packet} via {path}")
+        Logger.log(
+            f"Registered Packet {packet.id} "
+            f"for simulation"
+        )
 
-        for i in range(len(path) - 1):
-            current_node = path[i]
-            next_node = path[i + 1]
+    def process_tick(self):
+        Logger.log("=== Processing Tick ===")
 
-            node = self.network.nodes[current_node]
-            link = node.neighbours[next_node]
+        completed_packets = []
 
-            if link.is_congested():
-                link.drop_packet()
-                self.metrics.packet_dropped()
+        for packet_state in self.active_packets:
+            packet = packet_state["packet"]
+
+            path = packet_state["path"]
+
+            current_hop = packet_state["current_hop"]
+
+            if current_hop >= len(path) - 1:
+                packet.mark_delivered()
+
+                self.metrics.packet_delivered()
 
                 Logger.log(
-                    f"Packet {packet.id} DROPPED due to congestion "
-                    f"on {current_node} -> {next_node}"
+                    f"Packet {packet.id} delivered"
                 )
-                self.network.decay_network_traffic()
-                return
+
+                completed_packets.append(packet_state)
+
+                continue
+
+            current_node = path[current_hop]
+
+            next_node = path[current_hop + 1]
+
+            node = self.network.nodes[current_node]
+
+            link = node.neighbours[next_node]
 
             success = link.enqueue_packet(packet)
+
             if not success:
                 self.metrics.packet_dropped()
 
                 Logger.log(
-                    f"Packet {packet.id} DROPPED due to full queue "
+                    f"Packet {packet.id} dropped "
                     f"on {current_node} -> {next_node}"
                 )
 
-                self.network.decay_network_traffic()    
+                completed_packets.append(packet_state)
 
-                return
-            
-            Logger.log(
-                f"Packet {packet.id} queued on "
-                f"{current_node} -> {next_node}"
+                continue
+
+            processed_packets = (
+                link.process_queue()
             )
 
-            time.sleep(link.latency * 0.2)
+            for processed_packet in processed_packets:
+                processed_packet.move_to(next_node)
 
-            transmitted_packet = link.dequeue_packet()
+                packet_state["current_hop"] += 1
 
-            if transmitted_packet:
-                self.metrics.add_queue_delay(
-                transmitted_packet.queue_delay()
-            )
-                
-            packet.move_to(next_node)
-    
-            Logger.log(
-                f"Packet {packet.id} moved "
-                f"{current_node} -> {next_node}"
-            )
+                Logger.log(
+                    f"Packet {processed_packet.id} "
+                    f"moved {current_node} -> {next_node}"
+                )
 
-        packet.mark_delivered()
-
-        self.metrics.packet_delivered()
-
-        Logger.log(
-            f"Packet {packet.id} delivered successfully"
-        )
+        for completed in completed_packets:
+            self.active_packets.remove(completed)
 
         self.network.network_decay_traffic()

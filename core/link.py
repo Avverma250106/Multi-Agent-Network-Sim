@@ -23,6 +23,7 @@ class Link:
 
         self.dropped_packets = 0
         self.transmitted_packets = 0
+        self.processing_rate = 2
 
         self.last_decay_time = time.time()
         self.decay_factor = 0.5
@@ -55,6 +56,14 @@ class Link:
         self.current_load = max(0, self.current_load - packet.size)
         self.transmitted_packets += 1
         return packet
+    
+    def process_queue(self):
+        processed_packets = []
+        for _ in range(min(self.processing_rate, len(self.packet_queue))):
+            packet = self.dequeue_packet()
+            if packet:
+                processed_packets.append(packet)
+        return processed_packets
 
     def clear_traffic(self):
         self.current_load = 0

@@ -13,6 +13,7 @@ class Packet:
 
         self.path = [source]
         self.delivered = False
+        self.in_transit = False
 
         self.queue_entry_time = None
         self.queue_exit_time = None

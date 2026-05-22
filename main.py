@@ -47,8 +47,10 @@ if __name__ == "__main__":
         metrics.packet_generated()
 
         event_engine.transmit_packet(packet)
-
         print()
+
+    for _ in range(20):
+        event_engine.process_tick()
 
     print("=== Simulation Complete ===")
 
