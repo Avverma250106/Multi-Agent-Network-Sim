@@ -1,6 +1,6 @@
 import time
 
-from core import link
+from core import link, packet
 from telemetry.logger import Logger
 
 
@@ -29,15 +29,38 @@ class EventEngine:
                     f"Packet {packet.id} DROPPED due to congestion "
                     f"on {current_node} -> {next_node}"
                 )
-
+                self.network.decay_network_traffic()
                 return
 
-            link.add_traffic(packet.size)
+            success = link.enqueue_packet(packet)
+            if not success:
+                self.metrics.packet_dropped()
+
+                Logger.log(
+                    f"Packet {packet.id} DROPPED due to full queue "
+                    f"on {current_node} -> {next_node}"
+                )
+
+                self.network.decay_network_traffic()    
+
+                return
+            
+            Logger.log(
+                f"Packet {packet.id} queued on "
+                f"{current_node} -> {next_node}"
+            )
 
             time.sleep(link.latency * 0.2)
 
-            packet.move_to(next_node)
+            transmitted_packet = link.dequeue_packet()
 
+            if transmitted_packet:
+                self.metrics.add_queue_delay(
+                transmitted_packet.queue_delay()
+            )
+                
+            packet.move_to(next_node)
+    
             Logger.log(
                 f"Packet {packet.id} moved "
                 f"{current_node} -> {next_node}"
@@ -50,3 +73,5 @@ class EventEngine:
         Logger.log(
             f"Packet {packet.id} delivered successfully"
         )
+
+        self.network.network_decay_traffic()

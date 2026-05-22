@@ -54,5 +54,7 @@ if __name__ == "__main__":
 
     print(
         f"Delivery Ratio: "
-        f"{metrics.delivery_ratio() * 100:.2f}%"
+        f"{metrics.delivery_ratio() * 100:.2f}%\n"
+        f"Drop Ratio: {metrics.drop_ratio() * 100:.2f}%\n"
+        f"Average Queue Delay: {metrics.average_queue_delay():.4f} seconds"
     )

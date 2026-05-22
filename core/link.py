@@ -1,4 +1,5 @@
 import time 
+from collections import deque
 
 class Link:
     def __init__(
@@ -18,8 +19,10 @@ class Link:
         self.current_load = 0
 
         self.max_queue_size = max_queue_size
+        self.packet_queue = deque()
 
         self.dropped_packets = 0
+        self.transmitted_packets = 0
 
         self.last_decay_time = time.time()
         self.decay_factor = 0.5
@@ -33,22 +36,45 @@ class Link:
     def add_traffic(self, amount=1):
         self.current_load += amount
 
+    def enqueue_packet(self,packet):
+        if len(self.packet_queue) >= self.max_queue_size:
+            self.drop_packet()
+            return False
+        
+        packet.queue_entry_time = time.time()
+        self.packet_queue.append(packet)
+        self.current_load += packet.size
+        return True
+    
+    def dequeue_packet(self):
+        if not self.packet_queue:
+            return None
+        
+        packet = self.packet_queue.popleft()
+        packet.queue_exit_time = time.time()
+        self.current_load = max(0, self.current_load - packet.size)
+        self.transmitted_packets += 1
+        return packet
+
     def clear_traffic(self):
         self.current_load = 0
 
     def utilization(self):
         return self.current_load / self.bandwidth
+    
+    def queue_length(self):
+        return len(self.packet_queue)
 
     def is_congested(self):
-        return self.current_load >= self.max_queue_size
+        return len(self.packet_queue) >= self.max_queue_size
 
     def drop_packet(self):
         self.dropped_packets += 1
 
     def dynamic_weight(self):
-        congestion_penalty = self.utilization() * 10    
-
-        return self.latency + congestion_penalty
+        congestion_penalty = self.utilization()*10
+        queue_penalty = self.queue_length()*2
+        return self.latency + congestion_penalty + queue_penalty
     
     def decay_traffic(self):
         now = time.time()
