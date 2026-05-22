@@ -34,7 +34,8 @@ class Network:
         self.graph.add_edge(
             node_a,
             node_b,
-            weight=latency
+            weight=latency,
+            link=link
         )
 
     def route_packet(self, packet):
@@ -44,6 +45,12 @@ class Network:
         )
 
         return path
+    
+    def network_decay_traffic(self):
+        for _,_,data in self.graph.edges(data=True):
+            link = data['link']
+            link.decay_traffic()
+
 
     def display_topology(self):
         print("\n=== Network Topology ===")

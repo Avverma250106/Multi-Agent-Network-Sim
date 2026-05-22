@@ -1,3 +1,5 @@
+import time 
+
 class Link:
     def __init__(
         self,
@@ -18,6 +20,9 @@ class Link:
         self.max_queue_size = max_queue_size
 
         self.dropped_packets = 0
+
+        self.last_decay_time = time.time()
+        self.decay_factor = 0.5
 
     def get_other_node(self, node):
         if node == self.node_a:
@@ -41,9 +46,16 @@ class Link:
         self.dropped_packets += 1
 
     def dynamic_weight(self):
-        congestion_penalty = self.utilization() * 10
+        congestion_penalty = self.utilization() * 10    
 
         return self.latency + congestion_penalty
+    
+    def decay_traffic(self):
+        now = time.time()
+        elapsed = now - self.last_decay_time    
+        decay_amount = elapsed*self.decay_factor*self.bandwidth
+        self.current_load = max(0, self.current_load - decay_amount)
+        self.last_decay_time = now
 
     def __repr__(self):
         return (
