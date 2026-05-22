@@ -23,7 +23,7 @@ class Link:
 
         self.dropped_packets = 0
         self.transmitted_packets = 0
-        self.processing_rate = 2
+        self.processing_rate = 1
 
         self.last_decay_time = time.time()
         self.decay_factor = 0.5

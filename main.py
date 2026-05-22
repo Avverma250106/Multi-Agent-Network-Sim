@@ -41,7 +41,7 @@ if __name__ == "__main__":
 
     print("\n=== Starting Simulation ===\n")
 
-    for _ in range(50):
+    for _ in range(100):
         packet = traffic_generator.generate_packet()
 
         metrics.packet_generated()
@@ -49,7 +49,7 @@ if __name__ == "__main__":
         event_engine.transmit_packet(packet)
         print()
 
-    for _ in range(20):
+    for _ in range(100):
         event_engine.process_tick()
 
     print("=== Simulation Complete ===")
